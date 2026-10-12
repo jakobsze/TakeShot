@@ -1,0 +1,6 @@
+.build/
+dist/
+.DS_Store
+release/
+release.config
+.build-intel/

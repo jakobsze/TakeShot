@@ -1,0 +1,13 @@
+# Copy to release.config and fill in. Used by scripts/release.sh.
+
+# Where appcast.xml lives; baked into the app as SUFeedURL.
+# e.g. https://github.com/<you>/<repo>/releases/latest/download/appcast.xml
+FEED_URL=""
+
+# Folder URL the zips are downloaded from (must end with /).
+# e.g. https://github.com/<you>/<repo>/releases/latest/download/
+DOWNLOAD_URL_PREFIX=""
+
+# Optional: notarytool keychain profile (needs a Developer ID certificate).
+#   xcrun notarytool store-credentials "takeshot-notary" --apple-id you@example.com --team-id XXXXXXXXXX
+NOTARY_PROFILE=""

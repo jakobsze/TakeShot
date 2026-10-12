@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Takeshot</string>
+	<key>CFBundleExecutable</key>
+	<string>Takeshot</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.touchdesign.takeshot</string>
+	<key>CFBundleName</key>
+	<string>Takeshot</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.3.0</string>
+	<key>CFBundleVersion</key>
+	<string>3</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>LSUIElement</key>
+	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Takeshot records your webcam so it can composite a webcam bubble onto your screen recordings.</string>
+	<key>NSCameraUseContinuityCameraDeviceType</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Takeshot records microphone audio alongside your screen recordings.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Takeshot transcribes your recordings on this Mac to generate captions.</string>
+	<key>DonateURL</key>
+	<string></string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string></string>
+	<key>SUPublicEDKey</key>
+	<string>WVtTtWpmE9HGmAQ0d6DC/V/OsTZ2gVUliwk/P6sFISw=</string>
+</dict>
+</plist>
