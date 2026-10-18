@@ -78,10 +78,18 @@ struct ProjectsWindow: View {
     @State private var renaming: ProjectSummary?
     @State private var renameDraft = ""
     @State private var trashing: ProjectSummary?
+    @State private var showSupportBanner = Support.isBannerVisible
 
     var body: some View {
         VStack(spacing: 0) {
-            SupportBanner()
+            // Donation banner, pinned below the toolbar (stays put while scrolling).
+            if showSupportBanner {
+                SupportBanner {
+                    Support.snoozeBanner()
+                    withAnimation { showSupportBanner = false }
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
             if library.filtered.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "film.stack").font(.system(size: 40)).foregroundStyle(.secondary)
@@ -92,21 +100,7 @@ struct ProjectsWindow: View {
             } else {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 16)], spacing: 16) {
-                        ForEach(library.filtered) { project in
-                            ProjectCard(project: project)
-                                .onTapGesture(count: 2) { openWindow(value: project.folder) }
-                                .contextMenu {
-                                    Button("Open") { openWindow(value: project.folder) }
-                                    Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([project.folder]) }
-                                    Button("Rename…") {
-                                        renameDraft = project.name
-                                        renaming = project
-                                    }
-                                    Button("Duplicate") { library.duplicate(project) }
-                                    Divider()
-                                    Button("Move to Trash", role: .destructive) { trashing = project }
-                                }
-                        }
+                        ForEach(library.filtered) { project in projectCard(project) }
                     }
                     .padding(16)
                 }
@@ -145,6 +139,22 @@ struct ProjectsWindow: View {
         } message: {
             Text("You can restore it from the Trash later.")
         }
+    }
+
+    private func projectCard(_ project: ProjectSummary) -> some View {
+        ProjectCard(project: project)
+            .onTapGesture(count: 2) { openWindow(value: project.folder) }
+            .contextMenu {
+                Button("Open") { openWindow(value: project.folder) }
+                Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([project.folder]) }
+                Button("Rename…") {
+                    renameDraft = project.name
+                    renaming = project
+                }
+                Button("Duplicate") { library.duplicate(project) }
+                Divider()
+                Button("Move to Trash", role: .destructive) { trashing = project }
+            }
     }
 }
 

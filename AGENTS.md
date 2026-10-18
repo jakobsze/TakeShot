@@ -24,18 +24,17 @@ read at runtime from `/System/Library/Desktop Pictures`, and music is chosen by 
   `CHANGELOG.md` is the record of everything before that.
 
 ## Current state (2026-10-13)
-- **Version:** 0.3.0, installed at `/Applications/Takeshot.app`. Recordings live in
+- **Version:** 0.4.0 (first public release), installed at `/Applications/Takeshot.app`. Recordings live in
   `~/Movies/Takeshot`.
 - **Works and tested:**
   - recording: displays, windows, areas, camera, mic, system audio, pause/resume
   - the full editor, live preview and export (MP4/MOV/GIF)
   - captions, native macOS UI and timeline multi-select
-  - the movable/compact pill
+  - the movable/compact pill, which docks to screen edges and corners (`UI/PillDock.swift`;
+    left/right docks are upright, and the recording widget uses the same dock)
   - Support entry points (heart button, Recordings banner, 10th-export thank-you)
   - Sparkle self-update (tested against a local feed)
 - **Waiting on Matt:**
-  - donation link switch-on (`DonateURL`; his page is saved under "Open issues")
-  - hosting for the update feed (`SUFeedURL` is empty)
   - optionally a Developer ID certificate
 - **After the 2026-10-13 bundle-ID change,** macOS privacy permissions must be re-granted once on
   each Mac.
@@ -115,7 +114,11 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   Then inspect the new folder: durations of screen/webcam/mic should agree, offsets should be small,
   and mic peak > 0.
 - Other dev hooks: `TAKESHOT_AUTO_OPEN_EDITOR=1` (+ `TAKESHOT_AUTO_OPEN_EDITOR_PATH`), `TAKESHOT_EDITOR_TAB=camera`,
-  `TAKESHOT_OPEN_WINDOW=projects|settings`, `TAKESHOT_AUTO_EXPORT=1`.
+  `TAKESHOT_OPEN_WINDOW=projects|settings`, `TAKESHOT_AUTO_EXPORT=1`,
+  `TAKESHOT_TEST_DOCK_GUIDES=left:start` (shows the pill's drag guides with that target),
+  `TAKESHOT_TEST_DRAG=fromX,fromY,toX,toY` (posts a real mouse drag; needs Accessibility).
+- The pill is dragged by the app itself, not AppKit (`installBarDragTracking`); don't turn
+  `isMovableByWindowBackground` back on, or snapping becomes late or gets undone.
 - Screenshot only our own windows: get the window ID via CGWindowList, then `screencapture -l <id>`.
 
 ### Hardware on Matt's Mac (as of 2026-10-06)
@@ -131,8 +134,10 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   `UI/NativeStyle.swift`: Liquid Glass on macOS 26+, an `NSVisualEffectView` material before.
 - Inspector panels are grouped `Form` sections (`Group2` wraps `Section`). Window actions go in
   `.toolbar`. Settings are the SwiftUI `Settings` scene; open it with `openAppSettings()`.
-- Timeline colours come from `TrackColor`. The app icon source is generated (see CHANGELOG
-  2026-10-07); it lives at `Resources/AppIcon.icns` and is copied into the bundle by the Makefile.
+- Timeline colours come from `TrackColor`. The app icon is Matt's artwork (2026-10-16), kept full
+  size at `Resources/icon-source/AppIcon-artwork.png`. It is scaled onto Apple's grid (824 px body on
+  a 1024 canvas, soft drop shadow) and built into `Resources/AppIcon.icns`, which the Makefile
+  copies into the bundle. Rebuild the .icns from the artwork if it changes; see CHANGELOG 2026-10-16.
 
 ## Gotchas learned the hard way
 - `AVAssetTrack` does **not** retain its `AVAsset`. Keep assets alive until composition inserts are
@@ -152,7 +157,11 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
 
 ## Releases and automatic updates (Sparkle)
 - `App/Updater.swift` wraps Sparkle. It only starts when Info.plist has both `SUFeedURL` and
-  `SUPublicEDKey`. **`SUFeedURL` is empty until hosting is chosen.**
+  `SUPublicEDKey`.
+- **Hosting: GitHub Releases of the public repo `https://github.com/jakobsze/TakeShot`.**
+  `SUFeedURL` = `https://github.com/jakobsze/TakeShot/releases/latest/download/appcast.xml`. Every
+  release must upload **both** the zip and `appcast.xml` to a GitHub release marked "Latest". The
+  feed and the zip URL point at `latest/download/`, so the newest release must contain both files.
 - The private update-signing key is in Matt's login Keychain ("Private key for signing Sparkle
   updates"). Never export it into the repo. Back it up with
   `.build/artifacts/sparkle/Sparkle/bin/generate_keys -x <file>`; losing it means existing
@@ -169,14 +178,26 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   architectures corrupts SwiftPM's build database.
 
 ## Support / donations
-- `App/Support.swift`: toolbar/menu heart button, Recordings banner (30-day snooze), thank-you
-  after the 10th export. The URL is read from Info.plist `DonateURL`; set it there.
+- `App/Support.swift`, built from Matt's Figma designs:
+  - **Recordings banner** (`SupportBanner`, Figma node 14:30): one banner pinned below the toolbar
+    of the Recordings window, outside the scroll view so it stays visible while scrolling. The ✕
+    hides it for 7 days.
+  - **Export card** (`ExportSupportCard`, node 14:102): shown in the export sheet while the video
+    renders.
+  - Both use an orange (#FF4800) button and the images in `Resources/Donation/`, which the
+    Makefile and `release.sh` copy into the bundle. The system font stands in for the design's
+    Inter.
+  - The yellow `CoffeeButton` is at the far right of the editor toolbar. Menus have a plain
+    "Buy Me a Coffee…" item.
+  - The URL is Info.plist `DonateURL` = `https://buymeacoffee.com/touchdesign`.
 
 ## Open issues / ideas (not done)
-- **Donation URL is still empty** (Info.plist `DonateURL`). Matt's page, saved for later
-  (2026-10-09): `https://buymeacoffee.com/touchdesign`. Only set it when he asks to switch it on.
-- Distribution: needs hosting for the update feed, and a Developer ID certificate + notarization
-  for other Macs to open the app without a warning.
+- **Requested by Matt, to do later (2026-10-17):** an on/off toggle so the camera recording is not
+  zoomed in/out (the camera stays the same size when the screen zooms).
+- Distribution: releases are on GitHub (see "Releases and automatic updates"). Without a
+  Developer ID certificate + notarization, other Macs need "Open Anyway" once (README explains).
+  The release is signed with Matt's Apple Development certificate, whose name contains his email
+  address; a Developer ID would show his name instead.
 - Device mockups (MacBook/iPhone frames), window-resize presets before recording, and cloud share
   links are not built.
 - A recording that fails at stop leaves a project folder without `project.json`. The library ignores

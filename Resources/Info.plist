@@ -15,9 +15,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.3.0</string>
+	<string>0.4.0</string>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>4</string>
+	<key>DonateURL</key>
+	<string>https://buymeacoffee.com/touchdesign</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
@@ -32,12 +34,10 @@
 	<string>Takeshot records microphone audio alongside your screen recordings.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Takeshot transcribes your recordings on this Mac to generate captions.</string>
-	<key>DonateURL</key>
-	<string></string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string></string>
+	<string>https://github.com/jakobsze/TakeShot/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>WVtTtWpmE9HGmAQ0d6DC/V/OsTZ2gVUliwk/P6sFISw=</string>
 </dict>

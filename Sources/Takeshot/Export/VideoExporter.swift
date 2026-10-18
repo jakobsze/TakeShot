@@ -22,7 +22,6 @@ final class ExportJob: ObservableObject {
     @Published private(set) var status: Status = .idle
     @Published private(set) var progress: Double = 0
     /// True when this export was the user's 10th (shown once, ever).
-    @Published var reachedSupportMilestone = false
     private let cancelFlag = CancelFlag()
 
     final class CancelFlag: @unchecked Sendable {
@@ -45,7 +44,7 @@ final class ExportJob: ObservableObject {
                 let url = try await VideoExporter.export(state: state, settings: settings, destination: destination, cancel: flag) { p in
                     Task { @MainActor in self.progress = p }
                 }
-                reachedSupportMilestone = Support.recordExportAndCheckMilestone()
+                Support.recordExport()
                 status = .finished(url)
                 progress = 1
             } catch VideoExporter.ExportError.cancelled {

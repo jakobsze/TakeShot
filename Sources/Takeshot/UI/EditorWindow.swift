@@ -202,9 +202,6 @@ private struct EditorContentView: View {
             }
             .help("Rename project")
         }
-        ToolbarItem(placement: .primaryAction) {
-            SupportButton()
-        }
         ToolbarItemGroup(placement: .primaryAction) {
             ControlGroup {
                 Button { model.undo() } label: { Label("Undo", systemImage: "arrow.uturn.backward") }
@@ -291,6 +288,10 @@ private struct EditorContentView: View {
             .controlSize(.regular)
             .keyboardShortcut("e", modifiers: .command)
             .help("Export (⌘E)")
+        }
+        // Last, so it sits at the far right of the toolbar.
+        ToolbarItem(placement: .primaryAction) {
+            CoffeeButton(compact: true)
         }
     }
 

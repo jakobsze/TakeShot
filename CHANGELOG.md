@@ -12,6 +12,123 @@ confirms or disproves an earlier entry, update that entry's status rather than d
 
 ---
 
+## 2026-10-18 · Release 0.4.0: first public version, updates from GitHub ✅ (build) / 🟡 (install on another Mac)
+- **Why:** Matt wants the code public on GitHub and the app installable on other Macs with
+  automatic updates.
+- **Release:** `./scripts/release.sh 0.4.0` (build 4) produced a universal (x86_64 + arm64)
+  `Takeshot-0.4.0.zip` and `appcast.xml`. The build is signed with the Apple Development
+  certificate (no Developer ID, so not notarized), and the update is EdDSA-signed with Matt's key.
+- **Updates:** `SUFeedURL` = `https://github.com/jakobsze/TakeShot/releases/latest/download/appcast.xml`.
+  Releases go on the public repo's GitHub Releases page (`release.config`, not committed).
+- **README.md** added: features, install steps (including the one-time "Open Anyway"), build from
+  source, and the donation button.
+- **Verified:** unzipped the release and checked the version, build, feed URL, public key,
+  donation URL, both architectures, a strict signature check, bundled Sparkle and the donation
+  images. The appcast entry points at the zip with the correct length and signature.
+- **Not verified yet:** installing on a different Mac, and an update arriving from GitHub (needs
+  a later 0.4.1 release).
+
+## 2026-10-17 · Designed donation banner in the Recordings grid and card in export ✅
+- **Update:** the banner's ✕ now hides it for **7 days** instead of 30 (`Support.bannerSnoozeDays`).
+  Matt's existing hide (clicked 2026-10-13) was shortened to match, so it ends on 2026-10-20.
+- **Update (same day):** at Matt's request the banner moved out of the grid. It is now a single
+  banner pinned right below the toolbar ("Recordings" title and search), outside the scroll view,
+  so it stays visible while scrolling. The grid is a plain grid again. Verified with a screenshot.
+- **Why:** Matt designed both in Figma (file "FocusLock-UI", nodes 14:30 and 14:102). He asked
+  for the banner to appear "every two records" inside the recordings list, and for the card
+  to appear in export.
+- **Recordings grid (first version, replaced the same day; see the update above):** the banner (app
+  icon, "Takeshot is free…", orange "Buy me a coffee" pill, ✕) appeared after every **2 rows** of
+  recordings. I read "every two records" as rows; it is one
+  constant (`rowsBetweenBanners`). A short list still ends with one banner. The ✕ hides them
+  all for 30 days. The old banner above the grid was removed.
+- **Export:** the card (large icon, thank-you text, large orange button) shows above the progress
+  bar **while the video renders**. It replaces the one-time card after the 10th export (removed,
+  along with its milestone flag; exports are still counted).
+- **Assets:** the design's background images, icon, cup and ✕ were downloaded to
+  `Resources/Donation/`. The SVGs were rendered to 4× PNGs because macOS 13 can't load SVG, and
+  the duplicated 4.8 MB icon was cut to one 256 px copy. The Makefile and `release.sh` now copy
+  them into the bundle.
+- **Verified:** screenshots of the Recordings grid (banner after 2 rows of 3) and of a real
+  export of a recording copy at 37% with the card showing. Both match the Figma renders.
+
+## 2026-10-16 · Donations switched on: "Buy me a coffee" button ✅
+- **Why:** Matt sent his donation button (the embed code and a picture of it) to use as the
+  donation banner.
+- **What:** `DonateURL` is now `https://buymeacoffee.com/touchdesign`. A native `CoffeeButton`
+  copies the look of his button (#FFDD00 rounded rectangle, black text, a takeaway cup drawn in
+  SwiftUI; the system font stands in for Poppins). It replaces the "Support…" buttons in
+  the Recordings banner, the 10th-export thank-you card and (at Matt's request) the editor
+  toolbar, where it replaces the cup icon and sits at the far right, after Export. Menu items now read "Buy Me a Coffee…". The README shows the same button, linking to his page.
+- **Verified:** screenshots of the editor toolbar (on a copy of a recording) and the Recordings
+  banner with the new button (the banner snooze was
+  lifted for the screenshot and then restored to Matt's value). Not seen: the thank-you card,
+  which only appears after the 10th export.
+
+## 2026-10-16 · New app icon ✅
+- **Why:** Matt supplied his own icon artwork and asked to use it. The same day he replaced his
+  first choice (a camera character on a blue-violet square) with the final one: a winking film
+  clapperboard on a bright blue rounded square.
+- **What:** the full-size artwork is kept at `Resources/icon-source/AppIcon-artwork.png`. It filled
+  the whole 1024 px canvas, which would look oversized next to other macOS icons, so it was
+  scaled onto Apple's grid: 824 px body centred on a 1024 canvas, with a soft drop shadow. All
+  sizes from 16 to 1024 px went into `Resources/AppIcon.icns` (via `iconutil`). This replaces the
+  generated icon from 2026-10-07.
+  The same steps were rerun for the clapperboard artwork.
+- **Verified:** the installed bundle contains the new .icns, and after re-registering the app
+  with LaunchServices, `NSWorkspace.icon(forFile:)` returns the new icon. The Dock may show the
+  old one until it refreshes.
+
+## 2026-10-14 · Docking the pill to screen edges and corners ✅ (drag gesture 🟡)
+- **Why:** Matt wants to drag the pill into a corner or onto an edge (including top centre) and
+  have it stay there, upright on the left/right sides, with the recording widget in the same spot.
+- **How it works:** dropping the pill within 72 pt of an edge of a display's usable area (menu bar,
+  camera housing and Dock excluded via `visibleFrame`) docks it there: top or bottom → horizontal,
+  left or right → vertical (icons only). Along the edge it snaps to start / centre / end by thirds.
+  In a corner the current orientation wins; pushing further into one edge picks that edge. Dropped
+  anywhere else it stays free, as before.
+- **Recording widget:** appears at the same dock (upright on left/right), or centred on the pill's
+  free spot; at the default spot it stays bottom centre of the recorded display.
+- **Menu:** ⚙︎ › Dock Pill lists the 8 spots plus "Reset to Default Position". The Compact toggle
+  is disabled while the pill is upright.
+- **Saved:** `pillDock` in UserDefaults (side, spot, display ID), kept across launches.
+- **Code:** `UI/PillDock.swift` (model, geometry, drop rules), `AppDelegate.finishBarDrag` /
+  `dockBar`, `AnyLayout` in `RecordControlBar` and `RecordingWidgetView`.
+- **Verified:**
+  - Pill docked left/centre, top/right and bottom/left: screenshots checked, 12 pt from the edges,
+    below the menu bar and above the Dock.
+  - Recording self-test with right/bottom and top/centre docks: widget upright at the bottom right
+    (60×220) and horizontal at top centre.
+  - Drop rules tested on real screen geometry: middle → free, near left → left centre, past the
+    right edge → right bottom, both orientations in the top-left corner, top middle → top centre.
+  - Not verified by hand: the actual mouse drag and drop (can't be automated here).
+- **Drag guides (added the same day) ✅ visuals / 🟡 live drag:** as soon as the pill moves, every
+  screen dims slightly and outlines the dock spots in the shape the pill would take there (upright
+  on the sides). The spot it would snap to if dropped now is highlighted in the accent colour.
+  - Code: `UI/DockGuides.swift`. Drag tracking now polls the pill's frame at 60 Hz while the
+    button is held (`AppDelegate.trackBarDrag`), replacing the debounced move notification.
+  - Dev hook: `TAKESHOT_TEST_DOCK_GUIDES=<side>:<spot>` shows the guides with that target.
+  - Verified: screenshot with the hook (`left:start` highlighted upright at the top left, the 8
+    spots outlined). Not verified: the guides following a real hand drag.
+- **Magnet snapping (replaces the edge-distance rule above) ✅ logic / 🟡 hand drag:** Matt asked
+  for the pill to be pulled into the right place when dropped near a chosen spot. A drop now
+  docks into the outlined spot nearest the **cursor** (each outline in the shape the pill takes
+  there), when the cursor is within 150 pt of it (`PillDock.magnetRadius`); otherwise the pill
+  stays free. Only the 8 outlined spots can be targets, so the highlight always matches the result.
+  - Verified on real screen geometry: middle → free; 100 pt from the left outline → left centre,
+    200 pt → free; just below the top-left outline → top left; top middle 120 pt below → top
+    centre; past the bottom-right corner → bottom right; right edge a third down → right centre.
+- **Instant snap 🟡:** Matt saw the snap only when the orientation changed, then only after a
+  delay. Cause: AppKit's window drag (`isMovableByWindowBackground`) moves the window
+  asynchronously and applies its final position after mouse-up, overriding the snap. Fix: the app
+  now moves the pill itself (local monitor on mouse down/dragged/up in
+  `installBarDragTracking`), AppKit window dragging is off, and the snap happens on mouse-up
+  with no animation. A drag that starts on a pill button is sent "away" from the controls
+  so the button is cancelled, not clicked; opening a pill menu cancels the drag.
+  - Dev hook `TAKESHOT_TEST_DRAG=fromX,fromY,toX,toY` posts a real drag (needs Accessibility).
+  - Not verified: on 2026-10-14 Takeshot had **no Accessibility permission** (lost with the
+    bundle-ID change), so synthetic drags were dropped by macOS. Waiting on Matt's hand test.
+
 ## 2026-10-13 · Original identity throughout ✅
 - **Why:** Matt wants nothing in the product that points to any other product.
 - **Name:** the app, executable, package, sources (`Sources/Takeshot/`) and bundle ID

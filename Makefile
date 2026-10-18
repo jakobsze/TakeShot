@@ -37,6 +37,7 @@ app: build
 	@cp .build/$(CONFIG)/$(EXEC) "$(CONTENTS)/MacOS/$(EXEC)"
 	@cp Resources/Info.plist "$(CONTENTS)/Info.plist"
 	@cp Resources/AppIcon.icns "$(CONTENTS)/Resources/AppIcon.icns"
+	@cp Resources/Donation/*.png "$(CONTENTS)/Resources/"
 	@mkdir -p "$(CONTENTS)/Frameworks"
 	@cp -R "$(SPARKLE_FRAMEWORK)" "$(CONTENTS)/Frameworks/"
 	@codesign --force --deep --sign "$(SIGN_ID)" --options runtime --timestamp=none "$(CONTENTS)/Frameworks/Sparkle.framework"

@@ -90,13 +90,26 @@ private struct CountdownView: View {
 enum RecordingWidget {
     private static var panel: NSPanel?
 
+    /// Shown where the pill was: at the same dock (upright for left/right
+    /// docks) or centred on its free spot. With the pill at its default spot,
+    /// it goes to the bottom centre of the recorded display.
     static func show(recorder: RecorderViewModel, displayID: CGDirectDisplayID?) {
         hide()
-        let target = screen(for: displayID)
-        let size = NSSize(width: 286, height: 50)
-        let frame = NSRect(x: target.visibleFrame.midX - size.width / 2, y: target.visibleFrame.minY + 24, width: size.width, height: size.height)
-        let panel = OverlayPanel(contentRect: frame, interactive: true)
-        panel.contentView = NSHostingView(rootView: RecordingWidgetView(recorder: recorder))
+        let settings = AppSettings.shared
+        let dock = settings.pillDock
+        let hosting = NSHostingView(rootView: RecordingWidgetView(recorder: recorder, vertical: dock?.isVertical ?? false))
+        let size = hosting.fittingSize
+        let origin: NSPoint
+        if let dock {
+            origin = dock.origin(for: size)
+        } else if let center = settings.pillCenter {
+            origin = PillDock.origin(centeredOn: center, size: size)
+        } else {
+            let visible = screen(for: displayID).visibleFrame
+            origin = NSPoint(x: visible.midX - size.width / 2, y: visible.minY + 24)
+        }
+        let panel = OverlayPanel(contentRect: NSRect(origin: origin, size: size), interactive: true)
+        panel.contentView = hosting
         panel.orderFrontRegardless()
         self.panel = panel
     }
@@ -109,10 +122,12 @@ enum RecordingWidget {
 
 private struct RecordingWidgetView: View {
     @ObservedObject var recorder: RecorderViewModel
+    var vertical = false
     @State private var pulse = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        let layout = vertical ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
             Circle()
                 .fill(recorder.isPaused ? Color(nsColor: .systemYellow) : Color(nsColor: .systemRed))
                 .frame(width: 10, height: 10)
@@ -122,8 +137,10 @@ private struct RecordingWidgetView: View {
             Text(formatTime(recorder.elapsed, tenths: false))
                 .font(.body.monospacedDigit().weight(.semibold))
                 .foregroundStyle(.primary)
-                .frame(width: 48, alignment: .leading)
-            Spacer(minLength: 0)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: 48, alignment: vertical ? .center : .leading)
+            if !vertical { Spacer(minLength: 0) }
             widgetButton(recorder.isPaused ? "play.fill" : "pause.fill", help: recorder.isPaused ? "Resume (⌥⇧⌘P)" : "Pause (⌥⇧⌘P)") { recorder.togglePause() }
             widgetButton("arrow.counterclockwise", help: "Restart recording") { recorder.restartRecording() }
             widgetButton("trash", help: "Cancel and discard (⌥⇧⌘X)") { recorder.cancelRecording() }
@@ -136,8 +153,9 @@ private struct RecordingWidgetView: View {
             .buttonStyle(.plain)
             .help("Stop recording (⌥⇧⌘R)")
         }
-        .padding(.horizontal, 14)
-        .frame(width: 286, height: 50)
+        .padding(vertical ? .vertical : .horizontal, 14)
+        .frame(width: vertical ? 60 : 286, height: vertical ? nil : 50)
+        .fixedSize(horizontal: false, vertical: vertical)
         .floatingSurface(Capsule())
         .disabled(recorder.isBusy)
     }

@@ -517,8 +517,16 @@ struct RecordControlBar: View {
         }
     }
 
+    /// Docked to the left/right edge of a screen, the pill stands upright.
+    private var vertical: Bool { settings.pillDock?.isVertical ?? false }
+    /// Upright pills always show icons only.
+    private var compact: Bool { settings.pillCompact || vertical }
+    /// The side items are spaced on: after them across the pill, below them upright.
+    private var along: Edge.Set { vertical ? .bottom : .trailing }
+
     private var captureBar: some View {
-        HStack(spacing: 0) {
+        let layout = vertical ? AnyLayout(VStackLayout(spacing: 4)) : AnyLayout(HStackLayout(spacing: 0))
+        return layout {
             Button {
                 NSApp.terminate(nil)
             } label: {
@@ -531,16 +539,17 @@ struct RecordControlBar: View {
             .disabled(recorder.isBusy)
             .help(recorder.isBusy ? "Please wait…" : "Quit Takeshot")
             .accessibilityLabel("Quit")
-            .padding(.trailing, 6)
+            .padding(along, 6)
 
             // Grip: drag here (or any empty part of the pill) to move it.
             Image(systemName: "circle.grid.2x3.fill")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-                .frame(width: 16, height: 24)
+                .rotationEffect(vertical ? .degrees(90) : .zero)
+                .frame(width: vertical ? 24 : 16, height: vertical ? 16 : 24)
                 .contentShape(Rectangle())
-                .help("Drag to move")
-                .padding(.trailing, 6)
+                .help("Drag to move, or to an edge or corner of the screen to dock")
+                .padding(along, 6)
 
             Group {
                 sourceMenuButton(mode: .display, systemImage: "display")
@@ -597,8 +606,23 @@ struct RecordControlBar: View {
                     Toggle("Automatic zooms", isOn: $settings.createAutomaticZooms)
                     Divider()
                     Toggle("Compact (icons only)", isOn: $settings.pillCompact)
-                    Button("Reset position to bottom centre") { AppDelegate.shared.resetBarPosition() }
-                        .disabled(settings.pillCenter == nil)
+                        .disabled(vertical)
+                    Menu("Dock Pill") {
+                        ForEach(PillDock.menuChoices, id: \.title) { choice in
+                            Button {
+                                AppDelegate.shared.dockBar(side: choice.side, spot: choice.spot)
+                            } label: {
+                                if settings.pillDock?.side == choice.side && settings.pillDock?.spot == choice.spot {
+                                    Label(choice.title, systemImage: "checkmark")
+                                } else {
+                                    Text(choice.title)
+                                }
+                            }
+                        }
+                        Divider()
+                        Button("Reset to Default Position") { AppDelegate.shared.resetBarPosition() }
+                            .disabled(settings.pillCenter == nil && settings.pillDock == nil)
+                    }
                     Divider()
                     Button("Recordings…") { openWindow(id: "projects"); NSApp.activate(ignoringOtherApps: true) }
                     Button("Settings…") { openAppSettings() }
@@ -641,21 +665,29 @@ struct RecordControlBar: View {
             .disabled(recorder.isBusy || (!recorder.isRecording && !recorder.canStartRecording))
             .help(recorder.isBusy ? "Please wait…" : (recorder.isRecording ? "Stop Recording" : "Start Recording"))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, vertical ? 8 : 12)
+        .padding(.vertical, vertical ? 12 : 8)
         .floatingSurface(Capsule())
     }
 
+    @ViewBuilder
     private var barDivider: some View {
-        Divider()
-            .frame(height: 22)
-            .padding(.horizontal, 10)
+        if vertical {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(width: 22, height: 1)
+                .padding(.vertical, 10)
+        } else {
+            Divider()
+                .frame(height: 22)
+                .padding(.horizontal, 10)
+        }
     }
 
     /// Selected sources get the standard accent-tinted highlight.
     private func sourceLabel(_ title: String, systemImage: String, selected: Bool) -> some View {
         Label(title, systemImage: systemImage)
-            .pillLabel(compact: settings.pillCompact)
+            .pillLabel(compact: compact)
             .lineLimit(1)
             .foregroundStyle(selected ? Color.primary : Color.secondary)
             .help(title)
@@ -771,7 +803,7 @@ struct RecordControlBar: View {
             items()
         } label: {
             Label(label, systemImage: systemImage)
-                .pillLabel(compact: settings.pillCompact)
+                .pillLabel(compact: compact)
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .fixedSize()
@@ -780,7 +812,7 @@ struct RecordControlBar: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .help(label)
-        .padding(.trailing, settings.pillCompact ? 6 : 10)
+        .padding(along, compact ? 6 : 10)
     }
 }
 

@@ -32,6 +32,7 @@ struct ExportSheet: View {
                         .keyboardShortcut(.defaultAction)
                 }
             case .running:
+                ExportSupportCard()
                 VStack(alignment: .leading, spacing: 8) {
                     ProgressView(value: job.progress)
                     Text("Rendering… \(Int(job.progress * 100))%").font(.callout.monospacedDigit()).foregroundStyle(.secondary)
@@ -43,7 +44,6 @@ struct ExportSheet: View {
             case .finished(let url):
                 Label("Exported \(url.lastPathComponent)", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                 Text(fileSize(url)).font(.callout).foregroundStyle(.secondary)
-                SupportThankYouCard(visible: $job.reachedSupportMilestone)
                 HStack {
                     Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
                     Button("Copy to clipboard") {

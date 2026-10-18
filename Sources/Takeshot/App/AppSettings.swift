@@ -48,6 +48,17 @@ final class AppSettings: ObservableObject {
             }
         }
     }
+    /// Edge/corner the pill is docked to (left/right = vertical pill); nil
+    /// means it is free (`pillCenter`) or at the default spot.
+    @Published var pillDock: PillDock? {
+        didSet {
+            if let pillDock, let data = try? JSONEncoder().encode(pillDock) {
+                defaults.set(data, forKey: "pillDock")
+            } else {
+                defaults.removeObject(forKey: "pillDock")
+            }
+        }
+    }
     @Published var showInDock: Bool {
         didSet {
             defaults.set(showInDock, forKey: "showInDock")
@@ -109,6 +120,7 @@ final class AppSettings: ObservableObject {
         } else {
             pillCenter = nil
         }
+        pillDock = defaults.data(forKey: "pillDock").flatMap { try? JSONDecoder().decode(PillDock.self, from: $0) }
         showInDock = defaults.bool(forKey: "showInDock")
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }

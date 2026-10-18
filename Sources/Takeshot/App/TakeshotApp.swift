@@ -64,6 +64,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             self.positionBar()
         }
+        // Dev hook: show the drag guides with a highlighted target, e.g. "left:center".
+        if let spec = ProcessInfo.processInfo.environment["TAKESHOT_TEST_DOCK_GUIDES"] {
+            let parts = spec.split(separator: ":").map(String.init)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                DockGuides.show(horizontalSize: self.horizontalBarSize ?? self.mainWindow?.frame.size ?? NSSize(width: 383, height: 44),
+                                verticalSize: self.verticalBarSize)
+                if parts.count == 2, let side = PillDock.Side(rawValue: parts[0]), let spot = PillDock.Spot(rawValue: parts[1]) {
+                    DockGuides.update(target: PillDock(side: side, spot: spot, displayID: NSScreen.screens.first.flatMap(PillDock.displayID(of:))))
+                }
+            }
+        }
+        // Dev hook: drag the pill with real mouse events, "fromX,fromY,toX,toY"
+        // in global top-left coordinates (needs the app's Accessibility grant).
+        if let spec = ProcessInfo.processInfo.environment["TAKESHOT_TEST_DRAG"] {
+            let v = spec.split(separator: ",").compactMap { Double($0) }
+            if v.count == 4 {
+                DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
+                    func post(_ type: CGEventType, _ x: Double, _ y: Double) {
+                        CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: CGPoint(x: x, y: y), mouseButton: .left)?.post(tap: .cghidEventTap)
+                    }
+                    post(.mouseMoved, v[0], v[1]); usleep(100_000)
+                    post(.leftMouseDown, v[0], v[1]); usleep(150_000)
+                    for i in 1...40 {
+                        let f = Double(i) / 40
+                        post(.leftMouseDragged, v[0] + (v[2] - v[0]) * f, v[1] + (v[3] - v[1]) * f)
+                        usleep(15_000)
+                    }
+                    usleep(200_000)
+                    post(.leftMouseUp, v[2], v[3])
+                    NSLog("TESTDRAG: released at \(v[2]),\(v[3]) axTrusted=\(AXIsProcessTrusted())")
+                }
+            }
+        }
         setUpStatusItem()
     }
 
@@ -80,92 +113,163 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         barObservers.forEach { NotificationCenter.default.removeObserver($0) }
         barObservers = [
             NotificationCenter.default.addObserver(forName: NSWindow.didResizeNotification, object: window, queue: .main) { _ in
-                MainActor.assumeIsolated { AppDelegate.shared.positionBar() }
+                MainActor.assumeIsolated { AppDelegate.shared.barResized() }
             },
             NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { _ in
                 MainActor.assumeIsolated { AppDelegate.shared.positionBar() }
-            },
-            // While the user drags the pill the mouse-up never reaches the
-            // local monitor's window check reliably, so also finish on move end.
-            NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: window, queue: .main) { _ in
-                MainActor.assumeIsolated { AppDelegate.shared.barMoved() }
             },
         ]
     }
 
     private var barObservers: [NSObjectProtocol] = []
 
-    private var isPositioningBar = false
+    /// The pill's last size in each orientation, for the dock guides.
+    private var horizontalBarSize: NSSize?
+    private var verticalBarSize = NSSize(width: 57, height: 361)
+
+    private func barResized() {
+        if let size = mainWindow?.frame.size {
+            if AppSettings.shared.pillDock?.isVertical == true { verticalBarSize = size } else { horizontalBarSize = size }
+        }
+        positionBar()
+    }
 
     /// Places the control pill. By default it sits centred at the bottom of
     /// the main display (the one with the menu bar), just above the Dock. If
-    /// the user has dragged it somewhere, it stays centred on that spot
-    /// (kept on screen) even when its width changes.
-    func positionBar() {
+    /// the user docked it to an edge/corner it is pinned there (see
+    /// `PillDock`); if they dropped it elsewhere it stays centred on that spot
+    /// (kept on screen). Both hold when its size changes.
+    func positionBar(animated: Bool = false) {
         guard let window = mainWindow, let primary = NSScreen.screens.first else { return }
         let size = window.frame.size
+        let settings = AppSettings.shared
         var origin: NSPoint
-        if let center = AppSettings.shared.pillCenter {
-            let screen = NSScreen.screens.first { $0.frame.contains(center) } ?? primary
-            let visible = screen.visibleFrame
-            origin = NSPoint(x: center.x - size.width / 2, y: center.y - size.height / 2)
-            origin.x = min(max(origin.x, visible.minX + 4), visible.maxX - size.width - 4)
-            origin.y = min(max(origin.y, visible.minY + 4), visible.maxY - size.height - 4)
+        if let dock = settings.pillDock {
+            origin = dock.origin(for: size)
+        } else if let center = settings.pillCenter {
+            origin = PillDock.origin(centeredOn: center, size: size)
         } else {
             let visible = primary.visibleFrame
-            origin = NSPoint(x: visible.midX - size.width / 2, y: visible.minY + 24)
+            origin = NSPoint(x: (visible.midX - size.width / 2).rounded(), y: visible.minY + 24)
         }
-        origin = NSPoint(x: origin.x.rounded(), y: origin.y.rounded())
         guard window.frame.origin != origin else { return }
-        isPositioningBar = true
-        window.setFrameOrigin(origin)
-        isPositioningBar = false
+        if animated {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.18
+                window.animator().setFrameOrigin(origin)
+            }
+        } else {
+            window.setFrameOrigin(origin)
+        }
     }
 
-    /// Origin of the pill when the user pressed the mouse on it; a drag is a
-    /// press on the pill followed by the window ending up somewhere else.
-    private var barDragStartOrigin: NSPoint?
-    private var barDragMonitor: Any?
+    /// Where the pill would dock if it were dropped now (nil = stays free).
+    private func barDropTarget(_ window: NSWindow) -> PillDock? {
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? window.screen ?? NSScreen.screens[0]
+        let (horizontal, vertical) = barSizes(window)
+        return PillDock.forDrop(cursor: mouse, on: screen, horizontalSize: horizontal, verticalSize: vertical)
+    }
 
-    /// Remembers where the user drags the pill. Only presses that start on
-    /// the pill count, so system-driven moves never change the saved spot.
+    /// The pill's size lying down and upright (the one not on screen is the last seen, or an estimate).
+    private func barSizes(_ window: NSWindow) -> (NSSize, NSSize) {
+        let isVertical = AppSettings.shared.pillDock?.isVertical ?? false
+        return (isVertical ? (horizontalBarSize ?? NSSize(width: 383, height: 44)) : window.frame.size,
+                isVertical ? window.frame.size : verticalBarSize)
+    }
+
+    /// A drag of the pill ended: dock it if it was dropped near an edge,
+    /// otherwise remember the free spot.
+    private func finishBarDrag(from start: NSPoint) {
+        guard let window = mainWindow else { return }
+        let end = window.frame.origin
+        guard abs(end.x - start.x) > 2 || abs(end.y - start.y) > 2 else { return }
+        let settings = AppSettings.shared
+        let wasVertical = settings.pillDock?.isVertical ?? false
+        if let dock = barDropTarget(window) {
+            settings.pillDock = dock
+        } else {
+            settings.pillDock = nil
+            settings.pillCenter = CGPoint(x: window.frame.midX, y: window.frame.midY)
+        }
+        // Snaps instantly; an orientation change also resizes the window,
+        // which repositions it again via the resize observer.
+        positionBar()
+    }
+
+    /// Docks the pill from the ⚙︎ menu, on the display it is currently on.
+    func dockBar(side: PillDock.Side, spot: PillDock.Spot) {
+        let screen = mainWindow?.screen ?? NSScreen.screens[0]
+        AppSettings.shared.pillDock = PillDock(side: side, spot: spot, displayID: PillDock.displayID(of: screen))
+        positionBar()
+    }
+
+    private var barDragMonitors: [Any] = []
+    /// A press on the pill: where the mouse and the pill were, and whether it
+    /// has turned into a drag yet.
+    private var barDrag: (mouseStart: NSPoint, originStart: NSPoint, dragging: Bool)?
+
+    /// The pill is moved by the app itself rather than by AppKit's window
+    /// drag: that one moves the window asynchronously and reports the final
+    /// position late, so a snap on release got undone or came late. Moving it
+    /// here means the drop position is known on mouse-up and the snap is
+    /// instant. Only presses that start on the pill count.
     private func installBarDragTracking() {
-        guard barDragMonitor == nil else { return }
-        barDragMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] event in
+        guard barDragMonitors.isEmpty else { return }
+        let mouse = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             guard let self, let window = self.mainWindow else { return event }
-            if event.type == .leftMouseDown, event.window === window {
-                self.barDragStartOrigin = window.frame.origin
-            } else if event.type == .leftMouseUp, let start = self.barDragStartOrigin {
-                self.barDragStartOrigin = nil
-                let end = window.frame.origin
-                if abs(end.x - start.x) > 2 || abs(end.y - start.y) > 2 {
-                    AppSettings.shared.pillCenter = CGPoint(x: window.frame.midX, y: window.frame.midY)
+            switch event.type {
+            case .leftMouseDown:
+                self.barDrag = event.window === window ? (NSEvent.mouseLocation, window.frame.origin, false) : nil
+                return event
+            case .leftMouseDragged:
+                guard var drag = self.barDrag else { return event }
+                let mouse = NSEvent.mouseLocation
+                let dx = mouse.x - drag.mouseStart.x, dy = mouse.y - drag.mouseStart.y
+                if !drag.dragging {
+                    guard hypot(dx, dy) > 3 else { return event }
+                    drag.dragging = true
+                    self.barDrag = drag
+                    let (horizontal, vertical) = self.barSizes(window)
+                    DockGuides.show(horizontalSize: horizontal, verticalSize: vertical)
                 }
+                window.setFrameOrigin(NSPoint(x: drag.originStart.x + dx, y: drag.originStart.y + dy))
+                DockGuides.update(target: self.barDropTarget(window))
+                return Self.awayFromControls(event)
+            case .leftMouseUp:
+                guard let drag = self.barDrag else { return event }
+                self.barDrag = nil
+                guard drag.dragging else { return event }
+                DockGuides.hide()
+                self.finishBarDrag(from: drag.originStart)
+                return Self.awayFromControls(event)
+            default:
+                return event
             }
-            return event
         }
+        // A press that opens one of the pill's menus is not a drag.
+        let menu = NotificationCenter.default.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                AppDelegate.shared.barDrag = nil
+                DockGuides.hide()
+            }
+        }
+        barDragMonitors = [mouse as Any, menu]
     }
 
-    /// A window-server drag ends without a mouse-up event for us, so the
-    /// move notification (debounced) completes the drag instead.
-    private var barMoveWork: DispatchWorkItem?
-    fileprivate func barMoved() {
-        guard !isPositioningBar, barDragStartOrigin != nil, let window = mainWindow else { return }
-        barMoveWork?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self, NSEvent.pressedMouseButtons & 1 == 0, let start = self.barDragStartOrigin else { return }
-            self.barDragStartOrigin = nil
-            let end = window.frame.origin
-            if abs(end.x - start.x) > 2 || abs(end.y - start.y) > 2 {
-                AppSettings.shared.pillCenter = CGPoint(x: window.frame.midX, y: window.frame.midY)
-            }
-        }
-        barMoveWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
+    /// The same mouse event, but far outside the window, so a button the drag
+    /// started on is cancelled instead of clicked (the pill moves with the
+    /// cursor, so the cursor is still over that button on release).
+    private static func awayFromControls(_ event: NSEvent) -> NSEvent {
+        NSEvent.mouseEvent(with: event.type, location: NSPoint(x: -10_000, y: -10_000),
+                           modifierFlags: event.modifierFlags, timestamp: event.timestamp,
+                           windowNumber: event.windowNumber, context: nil, eventNumber: event.eventNumber,
+                           clickCount: event.clickCount, pressure: event.pressure) ?? event
     }
 
     func resetBarPosition() {
         AppSettings.shared.pillCenter = nil
+        AppSettings.shared.pillDock = nil
         positionBar()
     }
 
@@ -219,7 +323,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(makeItem("Recordings…", action: #selector(showPreviousRecordings)))
         menu.addItem(makeItem("Settings…", action: #selector(showSettings)))
         menu.addItem(makeItem("Check for Updates…", action: #selector(checkForUpdates)))
-        menu.addItem(makeItem("Support Takeshot…", action: #selector(showSupport)))
+        menu.addItem(makeItem("Buy Me a Coffee…", action: #selector(showSupport)))
         menu.addItem(.separator())
         menu.addItem(makeItem("Quit Takeshot", action: #selector(quit)))
 
@@ -335,9 +439,10 @@ struct FloatingBarWindowConfigurator: NSViewRepresentable {
         DispatchQueue.main.async {
             guard let window = view.window else { return }
             window.styleMask = [.borderless]
-            // Draggable by its background/grip; AppDelegate remembers the spot.
-            window.isMovableByWindowBackground = true
-            window.isMovable = true
+            // AppDelegate moves it on drag (see installBarDragTracking), so
+            // AppKit's own window dragging is off.
+            window.isMovableByWindowBackground = false
+            window.isMovable = false
             window.setFrameAutosaveName("")
             window.collectionBehavior.insert(.canJoinAllSpaces)
             window.backgroundColor = .clear
