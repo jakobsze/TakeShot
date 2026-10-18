@@ -12,7 +12,7 @@ confirms or disproves an earlier entry, update that entry's status rather than d
 
 ---
 
-## 2026-10-18 · Release 0.4.0: first public version, updates from GitHub ✅ (build) / 🟡 (install on another Mac)
+## 2026-10-18 · Release 0.4.0: first public version, updates from GitHub ✅ (install on another Mac 🟡)
 - **Why:** Matt wants the code public on GitHub and the app installable on other Macs with
   automatic updates.
 - **Release:** `./scripts/release.sh 0.4.0` (build 4) produced a universal (x86_64 + arm64)
@@ -25,8 +25,15 @@ confirms or disproves an earlier entry, update that entry's status rather than d
 - **Verified:** unzipped the release and checked the version, build, feed URL, public key,
   donation URL, both architectures, a strict signature check, bundled Sparkle and the donation
   images. The appcast entry points at the zip with the correct length and signature.
-- **Not verified yet:** installing on a different Mac, and an update arriving from GitHub (needs
-  a later 0.4.1 release).
+- **Published:** code and tag `v0.4.0` pushed to `github.com/jakobsze/TakeShot`; release
+  https://github.com/jakobsze/TakeShot/releases/tag/v0.4.0 has the zip and `appcast.xml`. GitHub
+  CLI (`gh`, via Homebrew) is installed and logged in as jakobsze, so future releases can be
+  published with `gh release create`.
+- **Verified from outside:** the public `latest/download` links serve the feed and the zip (HTTP
+  200, byte-identical), and the update signature verifies. **End to end:** a copy re-labelled
+  0.3.9 found 0.4.0 on GitHub, downloaded and installed it, and relaunched as 0.4.0 (build 4) with
+  a valid signature.
+- **Not verified yet:** installing on a different Mac (Gatekeeper "Open Anyway" path).
 
 ## 2026-10-17 · Designed donation banner in the Recordings grid and card in export ✅
 - **Update:** the banner's ✕ now hides it for **7 days** instead of 30 (`Support.bannerSnoozeDays`).

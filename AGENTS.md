@@ -166,6 +166,9 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   updates"). Never export it into the repo. Back it up with
   `.build/artifacts/sparkle/Sparkle/bin/generate_keys -x <file>`; losing it means existing
   installs can't be updated.
+- Publishing (GitHub CLI is installed and logged in as jakobsze):
+  `gh release create v<ver> release/Takeshot-<ver>.zip release/appcast.xml --repo jakobsze/TakeShot --title "Takeshot <ver>" --latest`.
+  Commit the bumped `Resources/Info.plist`, then tag and push first.
 - Release: copy `release.config.example` to `release.config`, fill in `FEED_URL` and
   `DOWNLOAD_URL_PREFIX`, run `./scripts/release.sh 0.3.1`, and upload `release/appcast.xml` plus
   the zip. The first run shows a Keychain prompt for the signing key; choose "Always Allow".
