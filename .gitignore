@@ -4,3 +4,4 @@ dist/
 release/
 release.config
 .build-intel/
+CHANGELOG.md

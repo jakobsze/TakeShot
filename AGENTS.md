@@ -1,7 +1,8 @@
 # Takeshot: project memory for AI assistants
 
 Read this before changing anything. Then read `CHANGELOG.md` for what has been done and how it was
-verified. **When you make a change, add a CHANGELOG entry and update this file if any fact below
+verified. `CHANGELOG.md` is local only: it is in `.gitignore` and not published to GitHub (Matt's
+choice, 2026-10-19), so never `git add -f` it. **When you make a change, add a CHANGELOG entry and update this file if any fact below
 changes.**
 
 ## What this is
