@@ -24,10 +24,10 @@ read at runtime from `/System/Library/Desktop Pictures`, and music is chosen by 
 - The app is **Takeshot** (bundle ID `com.touchdesign.takeshot`). Use only this name in UI,
   identifiers, docs and commit messages.
 - Dev environment variables use the `TAKESHOT_` prefix.
-- The repository is `~/Desktop/takeshot`. Its git history was restarted on 2026-10-13, so
+- The repository is `~/Desktop/takeshot`. Its git history was restarted at version 0.3.0, so
   `CHANGELOG.md` is the record of everything before that.
 
-## Current state (2026-10-13)
+## Current state (version 0.4.0)
 - **Version:** 0.4.0 (first public release), installed at `/Applications/Takeshot.app`. Recordings live in
   `~/Movies/Takeshot`.
 - **Works and tested:**
@@ -39,7 +39,7 @@ read at runtime from `/System/Library/Desktop Pictures`, and music is chosen by 
   - donation entry points (see "Support / donations")
   - Sparkle self-update (tested against a local feed)
 - **Optional:** a Developer ID certificate (see "Open issues").
-- **After the 2026-10-13 bundle-ID change,** macOS privacy permissions must be re-granted once on
+- **After the bundle-ID change in 0.3.0,** macOS privacy permissions must be re-granted once on
   each Mac.
 
 ## Build, install, run
@@ -124,7 +124,7 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   `isMovableByWindowBackground` back on, or snapping becomes late or gets undone.
 - Screenshot only our own windows: get the window ID via CGWindowList, then `screencapture -l <id>`.
 
-### Hardware on the development Mac (as of 2026-10-06)
+### Hardware on the development Mac
 - Displays: LG Ultra HD 5K (main, 2560×1440 pt) and built-in Retina (1728×1117 pt).
 - Cameras: MacBook Pro Camera, iPhone (Continuity).
 - Mics: Bose QC35 II (default; **records silence**), MacBook Pro Microphone, iPhone.
@@ -137,10 +137,10 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   `UI/NativeStyle.swift`: Liquid Glass on macOS 26+, an `NSVisualEffectView` material before.
 - Inspector panels are grouped `Form` sections (`Group2` wraps `Section`). Window actions go in
   `.toolbar`. Settings are the SwiftUI `Settings` scene; open it with `openAppSettings()`.
-- Timeline colours come from `TrackColor`. The app icon artwork (2026-10-16) is kept full
+- Timeline colours come from `TrackColor`. The app icon artwork (since 0.4.0) is kept full
   size at `Resources/icon-source/AppIcon-artwork.png`. It is scaled onto Apple's grid (824 px body on
   a 1024 canvas, soft drop shadow) and built into `Resources/AppIcon.icns`, which the Makefile
-  copies into the bundle. Rebuild the .icns from the artwork if it changes; see CHANGELOG 2026-10-16.
+  copies into the bundle. Rebuild the .icns from the artwork if it changes; see the CHANGELOG under 0.4.0.
 
 ## Gotchas learned the hard way
 - `AVAssetTrack` does **not** retain its `AVAsset`. Keep assets alive until composition inserts are
