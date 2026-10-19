@@ -66,7 +66,7 @@ struct SupportButton: View {
     }
 }
 
-/// The donation button in the style of Matt's donation page: yellow rounded
+/// The donation button in the style of the donation page: yellow rounded
 /// rectangle, black text and a takeaway cup. Its fixed colours are deliberate
 /// (a brand button, the same in light and dark mode), unlike the rest of the UI.
 struct CoffeeButton: View {
@@ -142,7 +142,7 @@ private struct CoffeeCup: View {
     }
 }
 
-// MARK: - Designed donation surfaces (from Matt's Figma file)
+// MARK: - Designed donation surfaces (from the project's Figma designs)
 
 /// Images for the donation surfaces, copied into the bundle from
 /// `Resources/Donation/` by the Makefile and the release script.

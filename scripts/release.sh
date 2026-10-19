@@ -68,6 +68,7 @@ cp "$BIN" "$BUNDLE/Contents/MacOS/$APP"
 cp $PLIST "$BUNDLE/Contents/Info.plist"
 cp Resources/AppIcon.icns "$BUNDLE/Contents/Resources/"
 cp Resources/Donation/*.png "$BUNDLE/Contents/Resources/"
+cp "$SPARKLE/LICENSE" "$BUNDLE/Contents/Resources/Sparkle-LICENSE.txt"   # MIT notice must ship with the app
 cp -R "$SPARKLE/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework" "$BUNDLE/Contents/Frameworks/"
 codesign --force --deep --sign "$SIGN_ID" --options runtime --timestamp "$BUNDLE/Contents/Frameworks/Sparkle.framework" 2>/dev/null \
   || codesign --force --deep --sign "$SIGN_ID" --options runtime --timestamp=none "$BUNDLE/Contents/Frameworks/Sparkle.framework"

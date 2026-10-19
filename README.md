@@ -49,3 +49,8 @@ make install   # also copies it to /Applications and launches it
 
 The Makefile signs with your Developer ID or Apple Development certificate if you have one, and
 falls back to ad-hoc signing otherwise (macOS then asks for permissions again after each rebuild).
+
+## Acknowledgements
+
+Automatic updates use [Sparkle](https://sparkle-project.org) (MIT License). Its license text ships
+inside the app at `Takeshot.app/Contents/Resources/Sparkle-LICENSE.txt`.

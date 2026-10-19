@@ -1,19 +1,22 @@
 # Takeshot: project memory for AI assistants
 
 Read this before changing anything. Then read `CHANGELOG.md` for what has been done and how it was
-verified. `CHANGELOG.md` is local only: it is in `.gitignore` and not published to GitHub (Matt's
-choice, 2026-10-19), so never `git add -f` it. **When you make a change, add a CHANGELOG entry and update this file if any fact below
+verified. `CHANGELOG.md` is local only: it is in `.gitignore` and not published to GitHub, so
+never `git add -f` it.
+
+**When you make a change, add a CHANGELOG entry and update this file if any fact below
 changes.**
 
 ## What this is
 A native macOS screen recorder and editor that turns raw recordings into polished videos: automatic
 zooms, smooth cursor, camera bubble, backgrounds, captions.
 It is written from scratch in Swift: SwiftUI, ScreenCaptureKit, AVFoundation, Core Image and Vision.
-All code and assets are original. Never copy code, assets, names or default values from any other
+All code and assets are original; the only third-party code is Sparkle (MIT), whose license must
+ship in the bundle (`Contents/Resources/Sparkle-LICENSE.txt`, copied by the Makefile and `release.sh`). Never copy code, assets, names or default values from any other
 product, and don't name other products in the app, code, docs or commit messages. Wallpapers are
 read at runtime from `/System/Library/Desktop Pictures`, and music is chosen by the user.
 
-- Owner: Matt. He wants a polished recorder that is local only and free.
+- Goal: a polished recorder that is local only and free.
 - Platform: macOS 13+ (developed on macOS 15, Apple Silicon). Swift 5 language mode, SwiftPM.
 - Size: ~9k lines across `Sources/Takeshot/`.
 
@@ -33,10 +36,9 @@ read at runtime from `/System/Library/Desktop Pictures`, and music is chosen by 
   - captions, native macOS UI and timeline multi-select
   - the movable/compact pill, which docks to screen edges and corners (`UI/PillDock.swift`;
     left/right docks are upright, and the recording widget uses the same dock)
-  - Support entry points (heart button, Recordings banner, 10th-export thank-you)
+  - donation entry points (see "Support / donations")
   - Sparkle self-update (tested against a local feed)
-- **Waiting on Matt:**
-  - optionally a Developer ID certificate
+- **Optional:** a Developer ID certificate (see "Open issues").
 - **After the 2026-10-13 bundle-ID change,** macOS privacy permissions must be re-granted once on
   each Mac.
 
@@ -122,7 +124,7 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   `isMovableByWindowBackground` back on, or snapping becomes late or gets undone.
 - Screenshot only our own windows: get the window ID via CGWindowList, then `screencapture -l <id>`.
 
-### Hardware on Matt's Mac (as of 2026-10-06)
+### Hardware on the development Mac (as of 2026-10-06)
 - Displays: LG Ultra HD 5K (main, 2560×1440 pt) and built-in Retina (1728×1117 pt).
 - Cameras: MacBook Pro Camera, iPhone (Continuity).
 - Mics: Bose QC35 II (default; **records silence**), MacBook Pro Microphone, iPhone.
@@ -135,7 +137,7 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   `UI/NativeStyle.swift`: Liquid Glass on macOS 26+, an `NSVisualEffectView` material before.
 - Inspector panels are grouped `Form` sections (`Group2` wraps `Section`). Window actions go in
   `.toolbar`. Settings are the SwiftUI `Settings` scene; open it with `openAppSettings()`.
-- Timeline colours come from `TrackColor`. The app icon is Matt's artwork (2026-10-16), kept full
+- Timeline colours come from `TrackColor`. The app icon artwork (2026-10-16) is kept full
   size at `Resources/icon-source/AppIcon-artwork.png`. It is scaled onto Apple's grid (824 px body on
   a 1024 canvas, soft drop shadow) and built into `Resources/AppIcon.icns`, which the Makefile
   copies into the bundle. Rebuild the .icns from the artwork if it changes; see CHANGELOG 2026-10-16.
@@ -163,7 +165,7 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   `SUFeedURL` = `https://github.com/jakobsze/TakeShot/releases/latest/download/appcast.xml`. Every
   release must upload **both** the zip and `appcast.xml` to a GitHub release marked "Latest". The
   feed and the zip URL point at `latest/download/`, so the newest release must contain both files.
-- The private update-signing key is in Matt's login Keychain ("Private key for signing Sparkle
+- The private update-signing key is in the maintainer's login Keychain ("Private key for signing Sparkle
   updates"). Never export it into the repo. Back it up with
   `.build/artifacts/sparkle/Sparkle/bin/generate_keys -x <file>`; losing it means existing
   installs can't be updated.
@@ -182,7 +184,7 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   architectures corrupts SwiftPM's build database.
 
 ## Support / donations
-- `App/Support.swift`, built from Matt's Figma designs:
+- `App/Support.swift`, built from the project's Figma designs:
   - **Recordings banner** (`SupportBanner`, Figma node 14:30): one banner pinned below the toolbar
     of the Recordings window, outside the scroll view so it stays visible while scrolling. The ✕
     hides it for 7 days.
@@ -196,12 +198,11 @@ App/          TakeshotApp (AppDelegate, status item, scenes), AppSettings + Pres
   - The URL is Info.plist `DonateURL` = `https://buymeacoffee.com/touchdesign`.
 
 ## Open issues / ideas (not done)
-- **Requested by Matt, to do later (2026-10-17):** an on/off toggle so the camera recording is not
+- **Planned:** an on/off toggle so the camera recording is not
   zoomed in/out (the camera stays the same size when the screen zooms).
 - Distribution: releases are on GitHub (see "Releases and automatic updates"). Without a
   Developer ID certificate + notarization, other Macs need "Open Anyway" once (README explains).
-  The release is signed with Matt's Apple Development certificate, whose name contains his email
-  address; a Developer ID would show his name instead.
+  Releases are currently signed with an Apple Development certificate.
 - Device mockups (MacBook/iPhone frames), window-resize presets before recording, and cloud share
   links are not built.
 - A recording that fails at stop leaves a project folder without `project.json`. The library ignores
